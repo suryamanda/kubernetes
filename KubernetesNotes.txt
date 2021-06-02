@@ -1,0 +1,268 @@
+1. Pods in kubernetes
+Smallest object of kubernetes object model
+Organize application parts into pods (Server, caching, APIs, database etc)
+2. pods can be horizontally scalled.
+3. pods with in a node will have unique IP adress.
+4. a node can contain multiple containers (side car scenario) -> these containers need to have different ports.
+5. pods wdoes not span over multiple nods.
+
+Running a pod
+*************
+1. kubectl run command
+2. kubectl create/apply command with a yaml file.
+
+#Run the nginx:alpine container in a pod.
+kubectl run [podname] --image=nginx:alpine
+
+#List only pods
+kubectl get pods
+
+#List all resources
+kubectl get all
+
+#Enable Pod container to be called externally
+kubectl port-forward [name-of-pod] 8080:80
+
+#will cause pod to be recreated
+kubectl delete pod [name-of-pod]
+
+#Delete deployment that manages the pod.
+kubectl delete deployment [name-of-deployment]
+
+creation of pods with yaml file
+*******************************
+#perform a trial create and also validate the yaml
+kubectl create -f file.pod.yml --dry-run --validate=true
+
+#create a pod from yaml
+#will error if pod already exists
+kubectl create -f file.pod.yml
+
+#alternative way to create or apply changes to a pod from yaml
+kubectl apply -f file.pod.yml
+
+#Use --save-cofig when you want to use kubectl apply in the future.
+kubectl create -f file.pod.yml --save-config
+
+**********************************
+#kubectl create -f nginx.pod.yml --save-config
+#kubectl describe pod [pod-name]
+kubectl get pod my-nginx -o yaml --> to get the pod details....
+#kubectl apply -f nginx.o.yml
+#kubectl exec [pod-name] -lt sh
+#kubectl edit -f nginx.pod.yml
+*********************************
+
+Basic yaml file for Pod creation
+--------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+ name: my-nginx
+spec:
+ containers:
+ - name: my-nginx
+   image: nginx:alpine
+
+
+Advanced yaml file for Pod creation
+-----------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+ name: my-nginx
+ labels:
+  app: nginx
+  rel: stable
+spec:
+ containers:
+ - name: my-nginx
+   image: nginx:alpine
+   ports:
+   - containerPort: 80
+   resources:
+
+
+--------------------------------
+
+kubectl create -f file-pod-advance.yml --save-config
+
+kubectl get pod my-nginx -o yaml
+--> It gives the description about the pod with annotations.
+
+
+**********************
+Pod health
+**********************
+Types of Porbes --> 1.Liveness probes, 2.Readiness probes.
+
+Probes can have Success, Failure, etc.
+
+sample yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+ name: my-nginx
+ labels:
+  app: nginx
+  rel: stable
+spec:
+ containers:
+ - name: my-nginx
+   image: nginx:alpine
+   livenessProbe:
+    httpGet:
+     path: /index.html
+     port: 80
+    initialDelaySeconds: 15
+    timeoutSeconds: 2
+    periodSeconds: 5
+    failureThreshold: 1
+   readinessProbe:
+    httpGet:
+     path: /index.html
+     port: 80
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    failureThreshold: 1
+   ports:
+   - containerPort: 80
+   resources:
+   
+   
+Liveness Probe with command line from container
+***********************************************
+apiVersion: v1
+kind: Pod
+metadata:
+ name: liveness
+ labels:
+  app: nginx
+  rel: stable
+spec:
+ containers:
+ - name: liveness
+   image: nginx:alpine
+   args:
+   - /bin/sh
+   - -c
+   - touch /tmp/healthy; sleep 30; rm -rf /tmp/healthy; sleep 600
+   livenessProbe:
+    exec:
+     command:
+     - cat
+     - /tmp/healthy
+    initialDelaySeconds: 5
+    periodSeconds: 5
+   resources:
+   
+   
+Deployments
+******************
+Replica set is a way to manage pods.
+A deployment is a declarative way of managing pods using replica sets.
+Deployments and replica sets ensure pods stay running and can be used to scale Pods.
+
+The role of replica sets
+-> Replicaset act as a Pod controller (Self healing mechanism.)
+-> Ensure the requested no.of Pods are available.
+-> Provide fault tolerance.
+-> can be used to scale pods.
+-> relies on a pod template
+-> No need to create Pods directly.
+-> Used by Deployments.
+
+
+Role of Deployments
+-> Scales replicasets which scale Pods.
+-> Supports zero downtime updates by creating and destroying replicasets
+-> Provides rollback functionality
+-> Creates a unique label that is assigned to the ReplicaSet and generated Pods.
+
+#kubectl create -f fle.deploy.yaml --save-config
+#kubectl get deployment --show-labels
+#kubectl get deployment -l app=nginx
+#kubectl delete deployment [deployment-name]
+
+scale the deployment pods to 5
+#kubectl scale deployment [deployment-name] --replicas=5
+#kubectl scale -f file.deployment.yml -replicas=5
+
+in YAML file also we can configure replicas as below
+spec:
+ replicas: 3
+ selector:
+  tier: fronted
+  
+  sample deployment YAML file
+  
+  -----------
+  
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: my-nginx
+ labels:
+  app: my-nginx
+spec:
+ replicas: 4
+ selector:
+  matchLabels:
+   app: my-nginx
+ template:
+  metadata:
+   labels:
+    app: my-nginx
+  spec:
+   containers:
+   - name: my-nginx
+     image: nginx:alpine
+     ports:
+     - containerPort: 80
+     resources:
+      limits:
+       memory: "128Mi"
+       cpu: "200m"
+
+
+Deployment Options
+**************************
+zero downtine deployments
+1. Rolling updates
+2. Blue Green deployments
+3. Canary deployments
+4. Rollbacks
+
+when ever a deployment happens it makes sure that the new deployment is up and healthy then only it will delete the old pods.
+
+Creating services
+***********************
+
+Need for a service --> Pods will live and die and IP changes over time, so we can not rely on IP address.
+as Pods get horizontally scales, IP address keep on changes.
+
+Services abstract Pod IP addresses from consumers.
+Relies on labels to associate a service with a Pod.
+Node's kube-proxy creates a virtual IP for services
+Services are not ephermeral --> they are not short lived.
+
+
+Service Types
+*************
+
+1. Cluster IP - exposes the service on a cluster-internal IP (default)
+2. NodePort - Exposes the service on each Node's IP at a static port.
+3. LoadBalancer - Provision an external IP to act as a load balancer for the service.
+4. ExternalName - Maps a service to a DNS name.
+
+Defining a service with YAML
+****************************
+
+
+
+
+
+
+
+

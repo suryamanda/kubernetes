@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Pod
+metadata:
+ name: liveness
+ labels:
+  app: nginx
+  rel: stable
+spec:
+ containers:
+ - name: liveness
+   image: nginx:alpine
+   args:
+   - /bin/sh
+   - -c
+   - touch /tmp/healthy; sleep 30; rm -rf /tmp/healthy; sleep 600
+   livenessProbe:
+    exec:
+     command:
+     - cat
+     - /tmp/healthy
+    initialDelaySeconds: 5
+    periodSeconds: 5
+   resources:
+
+
+
+#kubectl create -f nginx.pod.yml --save-config
+#kubectl describe pod [pod-name]
+#kubectl apply -f nginx.o.yml
+#kubectl exec [pod-name] -lt sh
+#kubectl edit -f nginx.pod.yml
